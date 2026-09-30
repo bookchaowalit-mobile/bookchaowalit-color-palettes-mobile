@@ -8,10 +8,16 @@ import {
   randomHex,
   readableTextColor,
 } from "../../lib/color";
+import { listCodec } from "../../lib/persist";
+import { isSavedPalette, removePalette, savePalette, type SavedPalette } from "../../lib/saved";
+import { usePersistentState } from "../../lib/usePersistentState";
+
+const savedCodec = listCodec(isSavedPalette);
 
 export default function PaletteScreen() {
   const [input, setInput] = useState("#4A90D9");
   const [scheme, setScheme] = useState<PaletteScheme>("analogous");
+  const [saved, setSaved] = usePersistentState<SavedPalette[]>("palettes.saved.v1", [], savedCodec);
 
   const base = normalizeHex(input);
   const palette = useMemo(() => (base ? generatePalette(base, scheme) : []), [base, scheme]);
@@ -33,6 +39,7 @@ export default function PaletteScreen() {
         />
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel="Random base color"
           onPress={() => setInput(randomHex())}
           style={styles.button}
         >
@@ -55,6 +62,17 @@ export default function PaletteScreen() {
         ))}
       </View>
 
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={base ? `Save ${scheme} palette from ${base}` : "Save palette, enter a valid color first"}
+        accessibilityState={{ disabled: !base }}
+        disabled={!base}
+        onPress={() => base && setSaved((list) => savePalette(list, base, scheme, Date.now()))}
+        style={[styles.button, styles.saveButton, !base && styles.buttonDisabled]}
+      >
+        <Text style={styles.buttonText}>Save palette</Text>
+      </Pressable>
+
       {palette.map((hex) => (
         <Pressable
           accessibilityHint="Uses this color as the new base"
@@ -68,6 +86,36 @@ export default function PaletteScreen() {
             {hex}
           </Text>
         </Pressable>
+      ))}
+
+      <Text style={styles.label} accessibilityRole="header">
+        Saved palettes ({saved.length})
+      </Text>
+      {saved.length === 0 && <Text style={styles.muted}>Nothing saved yet — tap “Save palette”.</Text>}
+      {saved.map((p) => (
+        <View key={p.id} style={styles.savedRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Open saved ${p.scheme} palette ${p.colors.join(", ")}`}
+            onPress={() => {
+              setInput(p.base);
+              setScheme(p.scheme);
+            }}
+            style={styles.savedSwatches}
+          >
+            {p.colors.map((c, i) => (
+              <View key={`${c}-${i}`} style={[styles.savedSwatch, { backgroundColor: c }]} />
+            ))}
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Delete saved ${p.scheme} palette from ${p.base}`}
+            hitSlop={8}
+            onPress={() => setSaved((list) => removePalette(list, p.id))}
+          >
+            <Text style={styles.delete}>Delete</Text>
+          </Pressable>
+        </View>
       ))}
     </ScrollView>
   );
@@ -97,6 +145,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   buttonText: { color: "#fff", fontWeight: "600" },
+  saveButton: { paddingVertical: 10, alignItems: "center" },
+  buttonDisabled: { backgroundColor: "#8A9BB0" },
+  muted: { color: "#555" },
+  savedRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  savedSwatches: { flex: 1, flexDirection: "row", height: 36, borderRadius: 8, overflow: "hidden" },
+  savedSwatch: { flex: 1 },
+  delete: { color: "#B00020", fontWeight: "600" },
+
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: {
     borderRadius: 16,
