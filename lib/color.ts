@@ -34,7 +34,10 @@ const HEX_PATTERN = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
 /** Normalizes `abc`, `#abc`, `#AABBCC` to `#AABBCC`; returns null when invalid. */
 export function normalizeHex(input: string): string | null {
-  const match = HEX_PATTERN.exec(input.trim());
+  // NFKC folds full-width "＃ＦＦ００００" from CJK keyboards; pasted values may
+  // carry zero-width spaces or a BOM.
+  const cleaned = input.normalize("NFKC").replace(/[\u200B-\u200D\u2060\uFEFF]/g, "").trim();
+  const match = HEX_PATTERN.exec(cleaned);
   if (!match) return null;
   let digits = match[1];
   if (digits.length === 3) {
@@ -151,10 +154,12 @@ export function generatePalette(baseHex: string, scheme: PaletteScheme): string[
       return [base, rotate(hsl, 120), rotate(hsl, 240)];
     case "tetradic":
       return [base, rotate(hsl, 90), rotate(hsl, 180), rotate(hsl, 270)];
-    case "monochromatic":
-      return [base, ...[-30, -15, 15, 30].map((delta) =>
-        rgbToHex(hslToRgb({ ...hsl, l: Math.min(95, Math.max(5, hsl.l + delta)) })),
-      )];
+    case "monochromatic": {
+      // Near white/black the ±30 steps used to clamp onto the same lightness
+      // (white gave two identical swatches); shift the steps to one side.
+      const deltas = hsl.l + 30 > 95 ? [-60, -45, -30, -15] : hsl.l - 30 < 5 ? [15, 30, 45, 60] : [-30, -15, 15, 30];
+      return [base, ...deltas.map((delta) => rgbToHex(hslToRgb({ ...hsl, l: Math.min(95, Math.max(5, hsl.l + delta)) })))];
+    }
   }
 }
 

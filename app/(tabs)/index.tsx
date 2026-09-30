@@ -73,12 +73,12 @@ export default function PaletteScreen() {
         <Text style={styles.buttonText}>Save palette</Text>
       </Pressable>
 
-      {palette.map((hex) => (
+      {palette.map((hex, i) => (
         <Pressable
           accessibilityHint="Uses this color as the new base"
           accessibilityLabel={`Swatch ${hex}`}
           accessibilityRole="button"
-          key={hex + scheme}
+          key={`${i}-${hex}-${scheme}`}
           onPress={() => setInput(hex)}
           style={[styles.swatch, { backgroundColor: hex }]}
         >

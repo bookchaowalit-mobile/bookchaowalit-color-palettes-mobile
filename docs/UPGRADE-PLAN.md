@@ -33,3 +33,11 @@ Score: 6/10 (was 5/10) — palettes can be saved, reopened and deleted, and pers
 - Accessibility: random/save/delete buttons labelled with the palette they act on; profile links get link roles.
 - Advisories: `overrides.postcss ^8.5.28` clears the high-severity PostCSS advisory in Expo metro-config (minor bump). Remaining `image-size` (metro, bundler-only), `uuid` (via `xcode`) and `decode-uri-component` (via `query-string@7`) need an Expo SDK major upgrade; deliberately not auto-fixed.
 - Verified: typecheck, lint, 22 vitest tests, Android `expo export` bundle.
+
+## Done in this pass (pass 3)
+
+Score: 7.5/10 (was 7/10) — edge-case hunt in `lib/color.ts`.
+
+- Bug: monochromatic palettes near white/black clamped two steps onto the same lightness (white → two identical `#F2F2F2` swatches), and swatches were keyed by `hex + scheme`, so React saw duplicate keys (also for grey complementary/triadic palettes). Steps now shift to one side near the extremes and keys include the index.
+- Bug: hex input with a zero-width space/BOM from a paste, or full-width "＃ＦＦ００００", was rejected; `normalizeHex` NFKC-folds and strips invisibles.
+- Verified: typecheck, lint, 24 vitest tests, Android `expo export`.

@@ -88,3 +88,18 @@ describe("randomHex", () => {
     expect(randomHex(() => 0.9999)).toBe("#FFFFFF");
   });
 });
+
+describe("pass 3 edge cases", () => {
+  it("monochromatic palettes have five distinct colors even for white, black and near-extremes", () => {
+    for (const hex of ["#FFFFFF", "#000000", "#F0F0F0", "#0A0A0A", "#CCE0FF", "#808080"]) {
+      const palette = generatePalette(hex, "monochromatic");
+      expect(new Set(palette).size).toBe(5);
+    }
+  });
+  it("accepts full-width and zero-width-polluted hex input", () => {
+    expect(normalizeHex("＃ＦＦ００００")).toBe("#FF0000");
+    expect(normalizeHex("#abc​")).toBe("#AABBCC");
+    expect(normalizeHex("﻿#abc")).toBe("#AABBCC");
+    expect(normalizeHex("0xabc")).toBeNull();
+  });
+});
